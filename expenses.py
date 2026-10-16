@@ -2,10 +2,13 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
+from fpdf import FPDF
+import tempfile
+import os
 
 DB_NAME = "electric_service.db"
 
-# Inicjalizacja bazy danych i automatyczne dodanie danych początkowych
+# Inicjalizacja bazy danych i danych początkowych
 def init_expenses_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -19,7 +22,6 @@ def init_expenses_db():
         )
     """)
     
-    # Sprawdź, czy tabela jest pusta – jeśli tak, dodaj początkowe rachunki
     cursor.execute("SELECT COUNT(*) FROM expenses")
     count = cursor.fetchone()[0]
     
@@ -75,12 +77,86 @@ def add_expense(date, store, material, amount):
     conn.commit()
     conn.close()
 
+# Klasa generująca PDF z obsługą polskich znaków (wbudowana czcionka Helvetica / standard)
+class PDFReport(FPDF):
+    def header(self):
+        # Nagłówek dokumentu
+        self.set_font("helvetica", "B", 14)
+        self.cell(0, 8, "ZESTAWIENIE KOSZTÓW MATERIAŁÓW ELEKTRYCZNYCH", 0, 1, "C")
+        self.ln(5)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("helvetica", "I", 8)
+        self.cell(0, 10, f"Strona {self.page_no()}", 0, 0, "C")
+
+def generate_pdf_report(df, contractor, investor, order_title):
+    pdf = PDFReport()
+    pdf.add_page()
+    
+    # Dane wykonawcy i inwestora
+    pdf.set_font("helvetica", "B", 10)
+    pdf.cell(0, 6, f"Zlecenie: {order_title}", 0, 1)
+    pdf.set_font("helvetica", "", 9)
+    pdf.cell(0, 5, f"Wykonawca: {contractor}", 0, 1)
+    pdf.cell(0, 5, f"Inwestor: {investor}", 0, 1)
+    pdf.cell(0, 5, f"Data wygenerowania: {datetime.today().strftime('%Y-%m-%d')}", 0, 1)
+    pdf.ln(5)
+
+    # Tabela z pozycjami
+    pdf.set_font("helvetica", "B", 9)
+    pdf.set_fill_color(230, 230, 230)
+    
+    # Nagłówki kolumn (Szerokości: Data, Sklep, Materiał, Wartość)
+    cols = [25, 45, 95, 30]
+    headers = ["Data", "Sklep", "Material", "Wartosc (PLN)"]
+    
+    for i, h in enumerate(headers):
+        pdf.cell(cols[i], 7, h, 1, 0, "C", True)
+    pdf.ln()
+
+    # Wiersze tabeli
+    pdf.set_font("helvetica", "", 8)
+    total = 0
+    for _, row in df.iterrows():
+        # Czyszczenie znaków specjalnych pod standardowe kodowanie FPDF
+        date_str = str(row["Data"])
+        store_str = str(row["Sklep"])[:25]
+        mat_str = str(row["Materiał"])[:55]
+        val_str = f"{row['Wartość (PLN)']:.2f}"
+        
+        pdf.cell(cols[0], 6, date_str, 1, 0, "C")
+        pdf.cell(cols[1], 6, store_str, 1, 0, "L")
+        pdf.cell(cols[2], 6, mat_str, 1, 0, "L")
+        pdf.cell(cols[3], 6, val_str, 1, 0, "R")
+        pdf.ln()
+        total += row["Wartość (PLN)"]
+
+    # Podsumowanie
+    pdf.set_font("helvetica", "B", 10)
+    pdf.cell(sum(cols[:3]), 8, "SUMA BRUTTO:", 1, 0, "R")
+    pdf.cell(cols[3], 8, f"{total:.2f} PLN", 1, 1, "R")
+
+    # Zapis do pliku tymczasowego
+    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    pdf.output(tmp_file.name)
+    return tmp_file.name
+
 # Główna funkcja modułu
 def render_expenses_tab():
     init_expenses_db()
     
     st.header("🧾 Rejestr Wydatków i Materiałów")
-    st.write("Kontrola kosztów z paragonów i faktur za materiały elektryczne.")
+    st.write("Kontrola kosztów z paragonów i faktur za materiały elektryczne oraz eksport do PDF.")
+
+    # Sekcja danych do pliku PDF (Zlecenie, Wykonawca, Inwestor)
+    with st.expander("📋 Dane zlecenia do raportu PDF", expanded=True):
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            order_title = st.text_input("Nazwa zlecenia / Obiekt", value="Instalacja elektryczna - dom jednorodzinny")
+            contractor = st.text_input("Wykonawca (Serwis / Firma)", value="Automatyka i Technika Napędów")
+        with col_p2:
+            investor = st.text_input("Inwestor (Klient)", value="Damian Falkowski, ul. Kamienna 1, Lubicz Górny")
 
     # Sekcja dodawania nowego zakupu
     with st.expander("➕ Dodaj nowy zakup (paragon / faktura)", expanded=False):
@@ -117,14 +193,19 @@ def render_expenses_tab():
 
         st.dataframe(df, use_container_width=True, hide_index=True)
 
-        # Przycisk do pobierania danych (CSV / Excel kompatybilny)
-        csv = df.to_csv(index=False, encoding='utf-8-sig')
-        st.download_button(
-            label="📥 Pobierz zestawienie (CSV / Excel)",
-            data=csv,
-            file_name="wydatki_elektryczne.csv",
-            mime="text/csv",
-        )
+        # Generowanie pliku PDF do pobrania
+        pdf_path = generate_pdf_report(df, contractor, investor, order_title)
+        with open(pdf_path, "rb") as pdf_file:
+            st.download_button(
+                label="📥 Pobierz zestawienie jako PDF",
+                data=pdf_file,
+                file_name="zestawienie_wydatkow.pdf",
+                mime="application/pdf",
+            )
+        # Usunięcie pliku tymczasowego po pobraniu
+        if os.path.exists(pdf_path):
+            os.unlink(pdf_path)
+            
     else:
         st.info("Brak wpisów w bazie dla wybranego filtra.")
 
