@@ -27,10 +27,10 @@ def init_expenses_db():
     
     if count == 0:
         initial_data = [
-            ("2026-10-03", "Leroy Merlin (Toruń)", "Korytko elektroinstalacyjne 40/60", 129.87),
-            ("2026-10-03", "Leroy Merlin (Toruń)", "Rura karbowana peszel 19x25", 112.98),
-            ("2026-10-03", "Leroy Merlin (Toruń)", "Uchwyt do kabli UK-USMP3-900", 39.00),
-            ("2026-10-03", "Leroy Merlin (Toruń)", "Przewód YDYp 3x2,5 750V 100m", 579.00),
+            ("2026-10-03", "Leroy Merlin (Torun)", "Korytko elektroinstalacyjne 40/60", 129.87),
+            ("2026-10-03", "Leroy Merlin (Torun)", "Rura karbowana peszel 19x25", 112.98),
+            ("2026-10-03", "Leroy Merlin (Torun)", "Uchwyt do kabli UK-USMP3-900", 39.00),
+            ("2026-10-03", "Leroy Merlin (Torun)", "Przewód YDYp 3x2,5 750V 100m", 579.00),
             ("2026-10-07", "ASAJ Sp. z o.o.", "Przewód ant/sat TRI-SHIELD 113/RG6 (100m)", 179.00),
             ("2026-10-07", "ASAJ Sp. z o.o.", "Pokrywa puszki fi 60 (opak.)", 20.92),
             ("2026-10-07", "ASAJ Sp. z o.o.", "Puszka PT S60DFW głęboka łączona", 124.00),
@@ -40,12 +40,12 @@ def init_expenses_db():
             ("2026-10-07", "ASAJ Sp. z o.o.", "Poziomica montażowa szara Simon 54", 24.60),
             ("2026-10-07", "ASAJ Sp. z o.o.", "UTP kat. 5e drut krążek 100m", 132.91),
             ("2026-10-07", "ASAJ Sp. z o.o.", "Przewód YDYp 4x1,5 mm2 (100m)", 583.00),
-            ("2026-10-13", "Leroy Merlin (Toruń)", "Rura karb. 2-warstwowa ziemna 40/32", 165.00),
-            ("2026-10-13", "Leroy Merlin (Toruń)", "Przewód YDYp 3x1,5 750V 100m", 2110.00),
-            ("2026-10-13", "Leroy Merlin (Toruń)", "Folia kablowa 200x0,07 niebieska", 75.99),
-            ("2026-10-16", "Leroy Merlin (Toruń)", "Korytko elektroinstalacyjne 40/60 (10 szt.)", 432.90),
-            ("2026-10-16", "Leroy Merlin (Toruń)", "Rura karbowana 19x25 szara 15m (4 szt.)", 125.96),
-            ("2026-10-16", "Leroy Merlin (Toruń)", "Przewód YDYp 3x2,5 750V 100m", 579.00)
+            ("2026-10-13", "Leroy Merlin (Torun)", "Rura karb. 2-warstwowa ziemna 40/32", 165.00),
+            ("2026-10-13", "Leroy Merlin (Torun)", "Przewód YDYp 3x1,5 750V 100m", 2110.00),
+            ("2026-10-13", "Leroy Merlin (Torun)", "Folia kablowa 200x0,07 niebieska", 75.99),
+            ("2026-10-16", "Leroy Merlin (Torun)", "Korytko elektroinstalacyjne 40/60 (10 szt.)", 432.90),
+            ("2026-10-16", "Leroy Merlin (Torun)", "Rura karbowana 19x25 szara 15m (4 szt.)", 125.96),
+            ("2026-10-16", "Leroy Merlin (Torun)", "Przewód YDYp 3x2,5 750V 100m", 579.00)
         ]
         cursor.executemany("INSERT INTO expenses (date, store, material, amount) VALUES (?, ?, ?, ?)", initial_data)
         conn.commit()
@@ -77,7 +77,19 @@ def add_expense(date, store, material, amount):
     conn.commit()
     conn.close()
 
-# Klasa generująca PDF z bezpiecznym kodowaniem
+# Funkcja usuwająca polskie znaki na potrzeby czcionek standardowych PDF
+def clean_text(text):
+    if not isinstance(text, str):
+        text = str(text)
+    replacements = {
+        'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
+        'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L', 'Ń': 'N', 'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+    return text
+
+# Klasa generująca PDF
 class PDFReport(FPDF):
     def header(self):
         self.set_font("helvetica", "B", 14)
@@ -94,10 +106,10 @@ def generate_pdf_report(df, contractor, investor, order_title):
     pdf.add_page()
     
     pdf.set_font("helvetica", "B", 10)
-    pdf.cell(0, 6, f"Zlecenie: {order_title}", 0, 1)
+    pdf.cell(0, 6, clean_text(f"Zlecenie: {order_title}"), 0, 1)
     pdf.set_font("helvetica", "", 9)
-    pdf.cell(0, 5, f"Wykonawca: {contractor}", 0, 1)
-    pdf.cell(0, 5, f"Inwestor: {investor}", 0, 1)
+    pdf.cell(0, 5, clean_text(f"Wykonawca: {contractor}"), 0, 1)
+    pdf.cell(0, 5, clean_text(f"Inwestor: {investor}"), 0, 1)
     pdf.cell(0, 5, f"Data wygenerowania: {datetime.today().strftime('%Y-%m-%d')}", 0, 1)
     pdf.ln(5)
 
@@ -108,15 +120,15 @@ def generate_pdf_report(df, contractor, investor, order_title):
     headers = ["Data", "Sklep", "Material", "Wartosc (PLN)"]
     
     for i, h in enumerate(headers):
-        pdf.cell(cols[i], 7, h, 1, 0, "C", True)
+        pdf.cell(cols[i], 7, clean_text(h), 1, 0, "C", True)
     pdf.ln()
 
     pdf.set_font("helvetica", "", 8)
     total = 0
     for _, row in df.iterrows():
-        date_str = str(row["Data"])
-        store_str = str(row["Sklep"])[:25]
-        mat_str = str(row["Materiał"])[:55]
+        date_str = clean_text(str(row["Data"]))
+        store_str = clean_text(str(row["Sklep"]))[:25]
+        mat_str = clean_text(str(row["Materiał"]))[:55]
         val_str = f"{row['Wartość (PLN)']:.2f}"
         
         pdf.cell(cols[0], 6, date_str, 1, 0, "C")
@@ -154,7 +166,7 @@ def render_expenses_tab():
             col1, col2 = st.columns(2)
             with col1:
                 exp_date = st.date_input("Data zakupu", value=datetime.today())
-                exp_store = st.selectbox("Sklep / Sprzedawca", ["Leroy Merlin (Toruń)", "ASAJ Sp. z o.o.", "Inny"])
+                exp_store = st.selectbox("Sklep / Sprzedawca", ["Leroy Merlin (Torun)", "ASAJ Sp. z o.o.", "Inny"])
             with col2:
                 exp_material = st.text_input("Nazwa materiału / pozycja")
                 exp_amount = st.number_input("Wartość (Brutto PLN)", min_value=0.0, format="%.2f")
@@ -168,7 +180,7 @@ def render_expenses_tab():
                     st.success("Dodano pomyślnie do bazy!")
                     st.rerun()
 
-    stores = ["Wszystkie", "Leroy Merlin (Toruń)", "ASAJ Sp. z o.o.", "Inny"]
+    stores = ["Wszystkie", "Leroy Merlin (Torun)", "ASAJ Sp. z o.o.", "Inny"]
     selected_store = st.selectbox("Filtruj według sklepu", stores)
 
     df = get_expenses(selected_store)
