@@ -8,7 +8,7 @@ import os
 
 DB_NAME = "electric_service.db"
 
-# Inicjalizacja bazy danych i danych początkowych
+# Inicjalizacja bazy danych i danych początkowych ze wszystkich paragonów
 def init_expenses_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -41,7 +41,7 @@ def init_expenses_db():
             ("2026-10-07", "ASAJ Sp. z o.o.", "UTP kat. 5e drut krążek 100m", 132.91),
             ("2026-10-07", "ASAJ Sp. z o.o.", "Przewód YDYp 4x1,5 mm2 (100m)", 583.00),
             ("2026-10-13", "Leroy Merlin (Torun)", "Rura karb. 2-warstwowa ziemna 40/32", 165.00),
-            ("2026-10-13", "Leroy Merlin (Torun)", "Przewód YDYp 3x1,5 750V 100m", 2110.00),
+            ("2026-10-13", "Leroy Merlin (Torun)", "Przewód YDYp 5x1,5 750V 100m", 2110.00),
             ("2026-10-13", "Leroy Merlin (Torun)", "Folia kablowa 200x0,07 niebieska", 75.99),
             ("2026-10-16", "Leroy Merlin (Torun)", "Korytko elektroinstalacyjne 40/60 (10 szt.)", 432.90),
             ("2026-10-16", "Leroy Merlin (Torun)", "Rura karbowana 19x25 szara 15m (4 szt.)", 125.96),
@@ -52,7 +52,7 @@ def init_expenses_db():
         
     conn.close()
 
-# Pobieranie danych posortowanych rosnąco (od najstarszych do najnowszych: ASC)
+# Pobieranie danych posortowanych rosnąco (od najstarszych do najnowszych)
 def get_expenses(store_filter="Wszystkie"):
     conn = sqlite3.connect(DB_NAME)
     if store_filter == "Wszystkie":
@@ -77,7 +77,7 @@ def add_expense(date, store, material, amount):
     conn.commit()
     conn.close()
 
-# Funkcja usuwająca polskie znaki na potrzeby czcionek standardowych PDF
+# Funkcja usuwająca polskie znaki na potrzeby standardowych czcionek PDF
 def clean_text(text):
     if not isinstance(text, str):
         text = str(text)
