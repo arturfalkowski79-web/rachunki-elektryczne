@@ -77,12 +77,11 @@ def add_expense(date, store, material, amount):
     conn.commit()
     conn.close()
 
-# Klasa generująca PDF z obsługą polskich znaków (wbudowana czcionka Helvetica / standard)
+# Klasa generująca PDF z bezpiecznym kodowaniem
 class PDFReport(FPDF):
     def header(self):
-        # Nagłówek dokumentu
         self.set_font("helvetica", "B", 14)
-        self.cell(0, 8, "ZESTAWIENIE KOSZTÓW MATERIAŁÓW ELEKTRYCZNYCH", 0, 1, "C")
+        self.cell(0, 8, "ZESTAWIENIE KOSZTOW MATERIALOW ELEKTRYCZNYCH", 0, 1, "C")
         self.ln(5)
 
     def footer(self):
@@ -94,7 +93,6 @@ def generate_pdf_report(df, contractor, investor, order_title):
     pdf = PDFReport()
     pdf.add_page()
     
-    # Dane wykonawcy i inwestora
     pdf.set_font("helvetica", "B", 10)
     pdf.cell(0, 6, f"Zlecenie: {order_title}", 0, 1)
     pdf.set_font("helvetica", "", 9)
@@ -103,11 +101,9 @@ def generate_pdf_report(df, contractor, investor, order_title):
     pdf.cell(0, 5, f"Data wygenerowania: {datetime.today().strftime('%Y-%m-%d')}", 0, 1)
     pdf.ln(5)
 
-    # Tabela z pozycjami
     pdf.set_font("helvetica", "B", 9)
     pdf.set_fill_color(230, 230, 230)
     
-    # Nagłówki kolumn (Szerokości: Data, Sklep, Materiał, Wartość)
     cols = [25, 45, 95, 30]
     headers = ["Data", "Sklep", "Material", "Wartosc (PLN)"]
     
@@ -115,11 +111,9 @@ def generate_pdf_report(df, contractor, investor, order_title):
         pdf.cell(cols[i], 7, h, 1, 0, "C", True)
     pdf.ln()
 
-    # Wiersze tabeli
     pdf.set_font("helvetica", "", 8)
     total = 0
     for _, row in df.iterrows():
-        # Czyszczenie znaków specjalnych pod standardowe kodowanie FPDF
         date_str = str(row["Data"])
         store_str = str(row["Sklep"])[:25]
         mat_str = str(row["Materiał"])[:55]
@@ -132,12 +126,10 @@ def generate_pdf_report(df, contractor, investor, order_title):
         pdf.ln()
         total += row["Wartość (PLN)"]
 
-    # Podsumowanie
     pdf.set_font("helvetica", "B", 10)
     pdf.cell(sum(cols[:3]), 8, "SUMA BRUTTO:", 1, 0, "R")
     pdf.cell(cols[3], 8, f"{total:.2f} PLN", 1, 1, "R")
 
-    # Zapis do pliku tymczasowego
     tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     pdf.output(tmp_file.name)
     return tmp_file.name
@@ -149,16 +141,14 @@ def render_expenses_tab():
     st.header("🧾 Rejestr Wydatków i Materiałów")
     st.write("Kontrola kosztów z paragonów i faktur za materiały elektryczne oraz eksport do PDF.")
 
-    # Sekcja danych do pliku PDF (Zlecenie, Wykonawca, Inwestor)
     with st.expander("📋 Dane zlecenia do raportu PDF", expanded=True):
         col_p1, col_p2 = st.columns(2)
         with col_p1:
             order_title = st.text_input("Nazwa zlecenia / Obiekt", value="Instalacja elektryczna - dom jednorodzinny")
-            contractor = st.text_input("Wykonawca (Serwis / Firma)", value="Automatyka i Technika Napędów")
+            contractor = st.text_input("Wykonawca (Serwis / Firma)", value="Automatyka i Technika Napedow")
         with col_p2:
-            investor = st.text_input("Inwestor (Klient)", value="Damian Falkowski, ul. Kamienna 1, Lubicz Górny")
+            investor = st.text_input("Inwestor (Klient)", value="Damian Falkowski, ul. Kamienna 1, Lubicz Gorny")
 
-    # Sekcja dodawania nowego zakupu
     with st.expander("➕ Dodaj nowy zakup (paragon / faktura)", expanded=False):
         with st.form("expense_form"):
             col1, col2 = st.columns(2)
@@ -178,7 +168,6 @@ def render_expenses_tab():
                     st.success("Dodano pomyślnie do bazy!")
                     st.rerun()
 
-    # Filtrowanie i wyświetlanie danych
     stores = ["Wszystkie", "Leroy Merlin (Toruń)", "ASAJ Sp. z o.o.", "Inny"]
     selected_store = st.selectbox("Filtruj według sklepu", stores)
 
@@ -193,7 +182,6 @@ def render_expenses_tab():
 
         st.dataframe(df, use_container_width=True, hide_index=True)
 
-        # Generowanie pliku PDF do pobrania
         pdf_path = generate_pdf_report(df, contractor, investor, order_title)
         with open(pdf_path, "rb") as pdf_file:
             st.download_button(
@@ -202,7 +190,6 @@ def render_expenses_tab():
                 file_name="zestawienie_wydatkow.pdf",
                 mime="application/pdf",
             )
-        # Usunięcie pliku tymczasowego po pobraniu
         if os.path.exists(pdf_path):
             os.unlink(pdf_path)
             
