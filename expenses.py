@@ -52,17 +52,17 @@ def init_expenses_db():
         
     conn.close()
 
-# Pobieranie danych z bazy
+# Pobieranie danych posortowanych od najnowszych do najstarszych (Data DESC, id DESC)
 def get_expenses(store_filter="Wszystkie"):
     conn = sqlite3.connect(DB_NAME)
     if store_filter == "Wszystkie":
         df = pd.read_sql_query(
-            "SELECT id, date AS Data, store AS Sklep, material AS Materiał, amount AS 'Wartość (PLN)' FROM expenses ORDER BY date DESC", 
+            "SELECT id, date AS Data, store AS Sklep, material AS Materiał, amount AS 'Wartość (PLN)' FROM expenses ORDER BY date DESC, id DESC", 
             conn
         )
     else:
         df = pd.read_sql_query(
-            "SELECT id, date AS Data, store AS Sklep, material AS Materiał, amount AS 'Wartość (PLN)' FROM expenses WHERE store = ? ORDER BY date DESC", 
+            "SELECT id, date AS Data, store AS Sklep, material AS Materiał, amount AS 'Wartość (PLN)' FROM expenses WHERE store = ? ORDER BY date DESC, id DESC", 
             conn, 
             params=(store_filter,)
         )
