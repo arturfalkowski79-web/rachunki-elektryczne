@@ -87,6 +87,15 @@ def render_expenses_tab():
         m2.metric(label="Liczba pozycji", value=len(df))
 
         st.dataframe(df, use_container_width=True, hide_index=True)
+
+        # Przycisk do pobierania danych (CSV / Excel kompatybilny)
+        csv = df.to_csv(index=False, encoding='utf-8-sig')
+        st.download_button(
+            label="📥 Pobierz zestawienie (CSV / Excel)",
+            data=csv,
+            file_name="wydatki_elektryczne.csv",
+            mime="text/csv",
+        )
     else:
         st.info("Brak wpisów w bazie dla wybranego filtra.")
 
